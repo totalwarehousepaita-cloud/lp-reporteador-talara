@@ -1,30 +1,17 @@
-# LP · Reporteador de Obra Talara
+# LP Reporteador Talara - Supabase
 
-Demo funcional del sistema de seguimiento de obra para Ingeniería & Desarrollo Industrial LP.
+Versión conectada a Supabase.
 
 ## Incluye
-- Panel del dueño con 2 proyectos.
-- Avance por Día X de 20.
-- Registro diario con texto y fotografías.
-- Alcance por proyecto.
-- Historial de reportes.
-- Eliminación de reportes solo desde el panel del dueño.
-- PDF individual por reporte.
-- PDF acumulado por proyecto.
-- Vista cliente por proyecto.
-- Fotografías ampliables en la vista cliente.
-
-## Estado actual
-Esta versión es frontend estático. Los datos se guardan en el navegador mediante localStorage.
-Por eso, antes de conectar Supabase, los reportes no se sincronizan entre dispositivos.
+- Panel del dueño con dos proyectos.
+- Reportes por día (1 al 20).
+- Avance proporcional según el último día reportado.
+- Múltiples fotos por reporte.
+- Fotos almacenadas en Supabase Storage.
+- Base de datos compartida entre dispositivos.
+- PDF individual y acumulado.
+- Eliminación de reportes desde el panel del dueño.
+- Enlace exclusivo para cliente por proyecto.
 
 ## Despliegue
-El archivo principal es `index.html`. Puede publicarse como Static Site en Render.
-
-## Siguiente etapa
-Conectar Supabase para:
-- Base de datos compartida.
-- Fotos en Storage.
-- Enlaces reales de cliente.
-- Persistencia entre dispositivos.
-- Seguridad y permisos.
+Subir `index.html` a la raíz del repositorio GitHub. Render desplegará automáticamente al detectar el commit en `main`.

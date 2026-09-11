@@ -225,6 +225,7 @@
   @media (min-width:700px){.app{max-width:760px}.modal{max-width:760px}.modal-footer{max-width:760px}.fab{max-width:728px}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="app" id="app"></div>
@@ -259,28 +260,82 @@ const PROJECTS = {
   }
 };
 
-const LS='lp-demo:';
-const store={
- get(k){try{return JSON.parse(localStorage.getItem(LS+k)||'null')}catch(e){return null}},
- set(k,v){localStorage.setItem(LS+k,JSON.stringify(v))}
-};
+// =========================
+// SUPABASE
+// =========================
+const SUPABASE_URL='https://msplskkzvyvqvbjapeiv.supabase.co';
+const SUPABASE_KEY='sb_publishable_wZSaJERND4ZdTgzQhqc4sQ_mF7OmtDQ';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let ROLE='owner';
 let VIEW={name:'dashboard'};
 let REPORT_MODAL=null;
+let REPORTS_CACHE={p1:[],p2:[]};
+let PROJECT_META={};
+let APP_READY=false;
 
 function esc(s){return (s||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
 function el(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild;}
-function getReports(pid){return store.get('reports:'+pid)||[]}
-function saveReports(pid,reports){store.set('reports:'+pid,reports)}
+function getReports(pid){return REPORTS_CACHE[pid]||[]}
 function maxDay(pid){const r=getReports(pid);return r.length?Math.max(...r.map(x=>x.day)):0}
 function pct(pid){return Math.round((maxDay(pid)/TOTAL_DAYS)*100)}
 function todayFmt(){return new Date().toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'})}
-function clientToken(pid){let t=store.get('token:'+pid); if(!t){t=Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,8);store.set('token:'+pid,t)} return t}
+function fmtDateLabel(v){if(!v)return todayFmt(); const d=new Date(v+'T12:00:00'); return d.toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'})}
+function isDataUrl(v){return typeof v==='string' && v.startsWith('data:image/')}
+function dataUrlToBlob(dataUrl){const [meta,b64]=dataUrl.split(','); const mime=(meta.match(/data:(.*?);base64/)||[])[1]||'image/jpeg'; const bin=atob(b64); const arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i); return new Blob([arr],{type:mime});}
+function publicPathFromUrl(url){const marker='/storage/v1/object/public/report-photos/'; const i=(url||'').indexOf(marker); return i>=0?decodeURIComponent(url.slice(i+marker.length)):null;}
+
+async function loadProjectsMeta(){
+  const {data,error}=await db.from('projects').select('id,client_token,total_days');
+  if(error) throw error;
+  PROJECT_META={};
+  (data||[]).forEach(x=>PROJECT_META[x.id]=x);
+}
+async function loadReports(pid){
+  const {data,error}=await db.from('reports').select('id,project_id,day,description,report_date,photos,updated_at').eq('project_id',pid).order('day',{ascending:true});
+  if(error) throw error;
+  REPORTS_CACHE[pid]=(data||[]).map(r=>({id:r.id,day:r.day,text:r.description||'',photos:r.photos||[],dateLabel:fmtDateLabel(r.report_date),updatedAt:r.updated_at,reportDate:r.report_date}));
+  return REPORTS_CACHE[pid];
+}
+async function refreshAll(){await Promise.all(Object.keys(PROJECTS).map(loadReports));}
+async function uploadPhoto(pid,day,dataUrl){
+  if(!isDataUrl(dataUrl)) return dataUrl;
+  const path=`${pid}/dia-${day}/${crypto.randomUUID()}.jpg`;
+  const blob=dataUrlToBlob(dataUrl);
+  const {error}=await db.storage.from('report-photos').upload(path,blob,{contentType:'image/jpeg',upsert:false});
+  if(error) throw error;
+  const {data}=db.storage.from('report-photos').getPublicUrl(path);
+  return data.publicUrl;
+}
+async function saveReportRemote(pid,report){
+  const existing=getReports(pid).find(r=>r.day===report.day);
+  const photos=[];
+  for(const ph of report.photos||[]) photos.push(await uploadPhoto(pid,report.day,ph));
+  const {data,error}=await db.from('reports').upsert({project_id:pid,day:report.day,description:report.text||'',report_date:new Date().toISOString().slice(0,10),photos},{onConflict:'project_id,day'}).select().single();
+  if(error) throw error;
+  if(existing){
+    const oldPaths=(existing.photos||[]).map(publicPathFromUrl).filter(Boolean);
+    const newPaths=photos.map(publicPathFromUrl).filter(Boolean);
+    const toDelete=oldPaths.filter(x=>!newPaths.includes(x));
+    if(toDelete.length) await db.storage.from('report-photos').remove(toDelete);
+  }
+  await loadReports(pid);
+  return data;
+}
+async function deleteReportRemote(pid,day){
+  const target=getReports(pid).find(r=>r.day===day);
+  if(!target) return;
+  const {error}=await db.from('reports').delete().eq('project_id',pid).eq('day',day);
+  if(error) throw error;
+  const paths=(target.photos||[]).map(publicPathFromUrl).filter(Boolean);
+  if(paths.length) await db.storage.from('report-photos').remove(paths);
+  await loadReports(pid);
+}
 
 function render(){
  const root=document.getElementById('app'); root.innerHTML=''; root.appendChild(buildTopbar());
  const main=document.createElement('main'); root.appendChild(main);
+ if(!APP_READY){main.appendChild(el(`<div class="empty-state"><div class="icon">⏳</div><p>Conectando con el sistema...</p></div>`));return;}
  if(VIEW.name==='dashboard') main.appendChild(viewDashboard());
  if(VIEW.name==='project') main.appendChild(viewProject(VIEW.pid));
  if(VIEW.name==='client') main.appendChild(viewClient(VIEW.pid));
@@ -344,27 +399,32 @@ function renderReportModal(){
  document.getElementById('r-save').onclick=saveReport; renderReportPhotos();
 }
 function renderReportPhotos(){const c=document.getElementById('r-photos'); if(!c)return;c.innerHTML=REPORT_MODAL.photos.map((ph,i)=>`<div class="photo-thumb"><img src="${ph}"><button class="rm" data-i="${i}">✕</button></div>`).join('');c.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{REPORT_MODAL.photos.splice(+b.dataset.i,1);renderReportPhotos()})}
-function fileToData(file){return new Promise((res,rej)=>{const rd=new FileReader();rd.onload=e=>res(e.target.result);rd.onerror=rej;rd.readAsDataURL(file)})}
-function saveReport(){
- const pid=REPORT_MODAL.pid, reports=getReports(pid); const idx=reports.findIndex(r=>r.day===REPORT_MODAL.day);
- const data={day:REPORT_MODAL.day,text:REPORT_MODAL.text.trim(),photos:[...REPORT_MODAL.photos],dateLabel:todayFmt(),updatedAt:new Date().toISOString()};
- if(idx>=0)reports[idx]=data; else reports.push(data); saveReports(pid,reports);document.getElementById('report-overlay')?.remove();VIEW={name:'project',pid};render();
+function fileToData(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{const maxW=1600;const scale=Math.min(1,maxW/img.width);const w=Math.round(img.width*scale),h=Math.round(img.height*scale);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',0.78));};img.onerror=reject;img.src=e.target.result;};reader.onerror=reject;reader.readAsDataURL(file);});}
+async function saveReport(){
+ const btn=document.getElementById('r-save');
+ const pid=REPORT_MODAL.pid;
+ const data={day:REPORT_MODAL.day,text:REPORT_MODAL.text.trim(),photos:[...REPORT_MODAL.photos]};
+ if(btn){btn.disabled=true;btn.textContent='Guardando...';}
+ try{
+   await saveReportRemote(pid,data);
+   document.getElementById('report-overlay')?.remove();
+   VIEW={name:'project',pid};render();
+ }catch(e){console.error(e);alert('No se pudo guardar el reporte. Verifica tu conexión e inténtalo nuevamente.'); if(btn){btn.disabled=false;btn.textContent='Guardar reporte';}}
 }
-function deleteReport(pid,day){
- const reports=getReports(pid);
- const target=reports.find(r=>r.day===day);
- if(!target)return;
- const ok=confirm(`¿Eliminar el reporte del Día ${day}?\n\nSe quitará del historial y del PDF acumulado. Esta acción no se puede deshacer en esta demo.`);
+async function deleteReport(pid,day){
+ const ok=confirm(`¿Eliminar el reporte del Día ${day}?\n\nSe eliminará del historial, del PDF acumulado y también sus fotografías.`);
  if(!ok)return;
- const updated=reports.filter(r=>r.day!==day);
- saveReports(pid,updated);
- VIEW={name:'project',pid};
- render();
+ try{await deleteReportRemote(pid,day);VIEW={name:'project',pid};render();}
+ catch(e){console.error(e);alert('No se pudo eliminar el reporte.');}
 }
-function copyClientLink(pid){
- const token=clientToken(pid); const link=`${location.origin}${location.pathname}?client=${pid}&token=${token}`;
- if(navigator.clipboard)navigator.clipboard.writeText(link).then(()=>alert('Enlace del cliente copiado. En esta demo funciona en este navegador.'));
- else prompt('Copia este enlace:',link)
+async function copyClientLink(pid){
+ try{
+   const token=PROJECT_META[pid]?.client_token;
+   if(!token) throw new Error('Token no disponible');
+   const link=`${location.origin}${location.pathname}?client=${pid}&token=${token}`;
+   if(navigator.clipboard){await navigator.clipboard.writeText(link);alert('Enlace del cliente copiado. Ya puedes enviárselo al cliente.');}
+   else prompt('Copia este enlace:',link);
+ }catch(e){console.error(e);alert('No se pudo generar el enlace del cliente.');}
 }
 function viewClient(pid){
  const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>b.day-a.day),d=maxDay(pid),pc=pct(pid); const w=document.createElement('div');
@@ -412,10 +472,19 @@ function downloadProjectPDF(pid){
  const element=buildPDFElement(pid,reps,`Reporte acumulado · Días reportados hasta el día ${d}`);
  exportPDF(element,`LP-${safeName(PROJECTS[pid].name)}-acumulado-dia-${d}.pdf`);
 }
-(function boot(){
- const q=new URLSearchParams(location.search); const pid=q.get('client'); const token=q.get('token');
- if(pid && PROJECTS[pid] && token===clientToken(pid)){ROLE='client';VIEW={name:'client',pid};}
- render();
+(async function boot(){
+ try{
+   await loadProjectsMeta();
+   await refreshAll();
+   const q=new URLSearchParams(location.search); const pid=q.get('client'); const token=q.get('token');
+   if(pid && PROJECTS[pid] && PROJECT_META[pid] && token===PROJECT_META[pid].client_token){ROLE='client';VIEW={name:'client',pid};}
+   APP_READY=true;
+   render();
+ }catch(e){
+   console.error(e);
+   const root=document.getElementById('app');
+   root.innerHTML='<div class="app"><div class="empty-state"><div class="icon">⚠</div><p>No se pudo conectar con Supabase. Revisa la configuración y vuelve a cargar la página.</p></div></div>';
+ }
 })();
 </script>
 

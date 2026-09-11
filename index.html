@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LP · Seguimiento de Obra Talara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C1E21;
+    --steel:#3A3D42;
+    --steel-2:#54585F;
+    --orange:#E85D04;
+    --orange-deep:#B8460A;
+    --orange-light:#FF8B3D;
+    --paper:#F6F4F1;
+    --paper-2:#EFECE7;
+    --line:#D6D2CB;
+    --white:#FFFFFF;
+    --text:#232427;
+    --success:#3D7A3F;
+    --success-tint:#E4EEE1;
+    --warn-tint:#F7E4D3;
+    --radius:14px;
+    --radius-sm:9px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);color:var(--text);font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;padding-bottom:40px;
+  }
+  h1,h2,h3,.display{font-family:'Archivo',sans-serif;}
+  button{font-family:inherit;}
+  .app{max-width:560px;margin:0 auto;min-height:100vh;background:var(--paper);position:relative;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* Topbar */
+  .topbar{
+    background:var(--ink);color:#fff;padding:16px 18px;
+    display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:20;border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  .brand{display:flex;align-items:center;gap:11px;}
+  .logo-mark{width:32px;height:32px;background:var(--paper);position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .logo-mark::after{content:'';position:absolute;width:11px;height:11px;border:2px solid var(--orange);right:-5px;bottom:-5px;background:var(--ink);}
+  .logo-mark span{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-size:12px;font-weight:700;}
+  .brand-text{line-height:1.1;}
+  .brand-text strong{display:block;font-family:'Archivo',sans-serif;font-weight:800;font-size:14.5px;letter-spacing:-0.2px;}
+  .brand-text span{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+  .role-chip{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:#fff;background:rgba(255,255,255,0.1);
+    padding:6px 10px;border:1px solid rgba(255,255,255,0.16);display:flex;align-items:center;gap:6px;cursor:pointer;
+  }
+
+  main{padding:18px 16px 60px;}
+
+  .test-banner{
+    background:var(--warn-tint);border:1px solid var(--orange-light);border-radius:var(--radius-sm);
+    padding:11px 13px;font-size:12px;color:var(--orange-deep);margin-bottom:16px;display:flex;gap:8px;align-items:flex-start;
+  }
+
+  /* Role select */
+  .hero-select{padding:26px 4px 8px;}
+  .hero-select h1{font-size:21px;margin:0 0 6px;line-height:1.25;}
+  .hero-select p{color:var(--steel-2);font-size:13.5px;margin:0 0 22px;font-weight:400;}
+  .role-card{
+    display:flex;align-items:center;gap:14px;background:var(--white);border:1px solid var(--line);
+    padding:18px;margin-bottom:12px;cursor:pointer;transition:border-color .15s;
+  }
+  .role-card:hover{border-color:var(--orange);}
+  .role-icon{
+    width:42px;height:42px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:19px;
+    background:var(--paper-2);color:var(--orange-deep);border:1px solid var(--line);
+  }
+  .role-card h3{margin:0 0 3px;font-size:14.5px;font-family:'Archivo',sans-serif;font-weight:700;}
+  .role-card p{margin:0;font-size:12px;color:var(--steel-2);}
+
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--orange-deep);display:flex;align-items:center;gap:8px;margin:22px 2px 10px;
+  }
+  .eyebrow:first-child{margin-top:0;}
+  .eyebrow::before{content:'';width:16px;height:1.5px;background:var(--orange);}
+
+  .proj-card{background:var(--white);border:1px solid var(--line);padding:18px;margin-bottom:14px;cursor:pointer;}
+  .proj-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;}
+  .proj-top h3{margin:0 0 4px;font-size:15.5px;line-height:1.3;font-family:'Archivo',sans-serif;font-weight:700;}
+  .proj-top p{margin:0;font-size:12px;color:var(--steel-2);}
+  .status-pill{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;padding:4px 9px;white-space:nowrap;letter-spacing:0.3px;}
+  .status-pill.active{background:var(--success-tint);color:var(--success);}
+  .status-pill.pending{background:var(--paper-2);color:var(--steel-2);}
+  .status-pill.test{background:var(--warn-tint);color:var(--orange-deep);}
+  .progress-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .progress-track{flex:1;height:6px;background:var(--paper-2);overflow:hidden;}
+  .progress-fill{height:100%;background:var(--orange);}
+  .progress-pct{font-family:'Archivo',sans-serif;font-size:13px;font-weight:800;color:var(--ink);width:42px;text-align:right;}
+  .proj-meta{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--steel-2);margin-top:9px;}
+
+  .backnav{display:flex;align-items:center;gap:8px;color:var(--orange-deep);font-size:13.5px;font-weight:600;margin-bottom:14px;cursor:pointer;}
+
+  .detail-head{background:var(--white);border:1px solid var(--line);padding:18px;margin-bottom:16px;}
+  .detail-head h2{font-size:17px;margin:0 0 4px;font-weight:700;}
+  .detail-head .sub{font-size:12px;color:var(--steel-2);margin:0 0 14px;}
+  .day-counter{display:flex;align-items:baseline;gap:6px;margin-bottom:10px;}
+  .day-counter .big{font-family:'Archivo',sans-serif;font-weight:800;font-size:24px;color:var(--ink);}
+  .day-counter .of{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--steel-2);}
+
+  .scope-toggle{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--orange-deep);font-weight:600;cursor:pointer;display:inline-block;margin-top:6px;letter-spacing:0.3px;}
+  .scope-list{list-style:none;margin:10px 0 0;padding:0;display:none;}
+  .scope-list.open{display:block;}
+  .scope-list li{font-size:12.5px;color:var(--steel-2);padding:7px 0 7px 16px;position:relative;border-top:1px solid var(--line);}
+  .scope-list li:before{content:'';position:absolute;left:0;top:14px;width:5px;height:5px;background:var(--orange);}
+
+  .fab{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    max-width:528px;width:calc(100% - 32px);background:var(--ink);color:#fff;border:none;
+    padding:15px;font-size:13.5px;font-weight:700;font-family:'Archivo',sans-serif;letter-spacing:0.2px;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 8px 24px rgba(28,30,33,0.3);cursor:pointer;z-index:30;
+  }
+
+  .tl-item{background:var(--white);border:1px solid var(--line);margin-bottom:11px;overflow:hidden;}
+  .tl-head{padding:13px 15px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .tl-day{display:flex;align-items:center;gap:10px;}
+  .tl-num{
+    width:38px;height:32px;background:var(--paper-2);color:var(--ink);border:1px solid var(--line);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;flex-shrink:0;line-height:1.15;
+  }
+  .tl-num b{font-size:12px;font-family:'Archivo',sans-serif;}
+  .tl-num.incident{background:var(--warn-tint);color:var(--orange-deep);border-color:var(--orange-light);}
+  .tl-date{font-size:13px;font-weight:600;}
+  .tl-time{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--steel-2);}
+  .tl-badge{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:600;padding:3px 7px;letter-spacing:0.3px;}
+  .tl-badge.ok{background:var(--success-tint);color:var(--success);}
+  .tl-badge.warn{background:var(--warn-tint);color:var(--orange-deep);}
+  .tl-body{padding:0 15px 15px;display:none;}
+  .tl-body.open{display:block;}
+  .tl-block{margin-top:10px;}
+  .tl-block h4{margin:0 0 4px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.6px;color:var(--steel-2);}
+  .tl-block p{margin:0;font-size:13px;line-height:1.5;}
+  .photo-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  .photo-row img{width:62px;height:62px;object-fit:cover;border:1px solid var(--line);}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .chip{font-size:11px;background:var(--paper-2);border:1px solid var(--line);padding:4px 9px;color:var(--ink);}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--steel-2);}
+  .empty-state .icon{font-size:28px;margin-bottom:10px;}
+  .empty-state p{font-size:13px;margin:0;}
+
+  .overlay{position:fixed;inset:0;background:rgba(28,30,33,0.6);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
+  .modal{background:var(--white);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:20px 18px 100px;position:relative;}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .modal-head h2{font-size:16px;margin:0;font-weight:700;}
+  .close-x{width:30px;height:30px;background:var(--paper-2);border:none;font-size:15px;color:var(--steel-2);cursor:pointer;}
+  .modal-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--steel-2);margin:0 0 18px;letter-spacing:0.2px;}
+
+  .picker-row{display:flex;gap:10px;margin-bottom:18px;}
+  .picker-col{flex:1;}
+  .field-group{margin-bottom:19px;}
+  .field-group label.fl{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--steel-2);margin-bottom:8px;}
+  textarea,input[type=text],input[type=time],select{
+    width:100%;border:1px solid var(--line);padding:11px 12px;font-size:13.5px;font-family:inherit;background:var(--paper);color:var(--ink);
+  }
+  textarea{min-height:76px;resize:vertical;}
+  .time-row{display:flex;gap:10px;}
+  .time-row .field-group{flex:1;margin-bottom:0;}
+
+  .check-list{display:flex;flex-direction:column;gap:8px;}
+  .check-item{display:flex;align-items:flex-start;gap:10px;background:var(--paper);border:1px solid var(--line);padding:10px 12px;cursor:pointer;}
+  .check-item input{margin-top:3px;flex-shrink:0;}
+  .check-item span{font-size:13px;line-height:1.4;}
+
+  .photo-upload{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .photo-thumb{position:relative;width:62px;height:62px;}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;border:1px solid var(--line);}
+  .photo-thumb .rm{position:absolute;top:-6px;right:-6px;width:19px;height:19px;background:var(--ink);color:#fff;border:none;font-size:10px;cursor:pointer;}
+  .add-photo{width:62px;height:62px;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--steel-2);font-size:19px;cursor:pointer;background:var(--paper);}
+
+  .toggle-row{display:flex;gap:10px;}
+  .toggle-btn{flex:1;padding:11px;border:1px solid var(--line);background:var(--paper);text-align:center;font-size:13px;font-weight:600;cursor:pointer;color:var(--steel-2);}
+  .toggle-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .toggle-btn.active.warn{background:var(--orange);border-color:var(--orange);}
+
+  .modal-footer{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--line);padding:14px 18px;max-width:560px;margin:0 auto;z-index:60;}
+  .btn-primary{width:100%;background:var(--ink);color:#fff;border:none;padding:14px;font-size:13.5px;font-weight:700;font-family:'Archivo',sans-serif;letter-spacing:0.3px;cursor:pointer;}
+  .btn-primary:hover{background:var(--orange);}
+  .btn-primary:disabled{background:#B9B9B9;}
+  .save-msg{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--steel-2);text-align:center;margin-top:8px;}
+
+  .top-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .link-btn{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--orange-deep);font-weight:600;background:none;border:1px solid var(--line);padding:8px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;letter-spacing:0.3px;background:var(--white);}
+  .report-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .mini-btn{border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;cursor:pointer;}
+  .mini-btn:hover,.link-btn:hover{border-color:var(--orange);color:var(--orange-deep);}
+  .photo-row img.clickable{cursor:zoom-in;transition:transform .12s,border-color .12s;}
+  .photo-row img.clickable:hover{transform:scale(1.04);border-color:var(--orange);}
+  .lightbox{position:fixed;inset:0;background:rgba(10,10,12,.92);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .lightbox img{max-width:96vw;max-height:88vh;object-fit:contain;box-shadow:0 12px 40px rgba(0,0,0,.45);}
+  .lightbox-close{position:fixed;top:18px;right:18px;width:42px;height:42px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-size:20px;cursor:pointer;}
+  .client-note{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--steel-2);margin-top:8px;}
+  .scope-box{background:var(--white);border:1px solid var(--line);padding:16px;margin:0 0 16px;}
+  .scope-box h3{margin:0 0 10px;font-size:14px;}
+  .scope-box ul{margin:0;padding-left:18px;}
+  .scope-box li{font-size:12.5px;line-height:1.5;color:var(--steel-2);margin:5px 0;}
+  .report-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .btn-danger{border:1px solid #C94A3A;background:#fff;color:#A43A2E;padding:8px 10px;font-size:11px;font-weight:700;cursor:pointer;}
+  .btn-danger:hover{background:#FBECEA;}
+  .pdf-export{background:#fff;color:#222;font-family:Arial,sans-serif;padding:30px;max-width:800px;}
+  .pdf-export h1,.pdf-export h2,.pdf-export h3{font-family:Arial,sans-serif;margin-top:0;}
+  .pdf-header{border-bottom:3px solid var(--orange);padding-bottom:14px;margin-bottom:20px;}
+  .pdf-meta{font-size:12px;color:#555;margin:4px 0;}
+  .pdf-progress{height:10px;background:#eee;margin:10px 0 18px;}
+  .pdf-progress > div{height:100%;background:var(--orange);}
+  .pdf-report{page-break-inside:avoid;border-top:1px solid #ddd;padding-top:18px;margin-top:18px;}
+  .pdf-photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .pdf-photos img{width:180px;height:130px;object-fit:cover;border:1px solid #ddd;}
+
+  @media print{
+    .topbar,.fab,.top-actions,.backnav,.link-btn,.scope-toggle,.test-banner{display:none !important;}
+    body{background:#fff;}
+    .tl-body{display:block !important;}
+  }
+
+  @media (min-width:700px){.app{max-width:760px}.modal{max-width:760px}.modal-footer{max-width:760px}.fab{max-width:728px}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const TOTAL_DAYS = 20;
+const PROJECTS = {
+  p1:{
+    id:'p1',
+    name:'Techo y Cielo Raso — CMO',
+    client:'Clínica Sanna · Centro Médico Ocupacional, Talara',
+    scope:[
+      'Desmontaje de cielo raso, cobertura y estructura de madera existente (214 m²)',
+      'Reforzamiento de tijerales e instalación de correas metálicas (278 m²)',
+      'Instalación de cobertura metálica Aluzinc TR4 (278 m²)',
+      'Instalación de cielo raso suspendido con baldosas Galaxy Vinil (178 m² + 64 m²)',
+      'Desmontaje de drywall existente e instalación de nueva estructura — perímetro y divisiones de 3er piso (120 m²)'
+    ]
+  },
+  p2:{
+    id:'p2',
+    name:'Mantenimiento Integral — Sanna + CMO',
+    client:'Clínica Sanna, Talara',
+    scope:[
+      'Sobretecho de cubierta: estructura metálica, Aluzinc, canaletas, flashing y montante pluvial',
+      'Cobertura de panel principal Clínica Sanna y Farmacia (demolición + policarbonato)',
+      'Instalaciones eléctricas: canalización, diagnóstico TTA, mantenimiento de tableros, expediente técnico',
+      'Instalaciones sanitarias: marco/tapa de caja de desagüe y válvula antiretorno',
+      'Drenaje pluvial: desmontaje e instalación de nuevas canaletas',
+      'Sistema drywall: flashing perimetral y estructura posterior'
+    ]
+  }
+};
+
+const LS='lp-demo:';
+const store={
+ get(k){try{return JSON.parse(localStorage.getItem(LS+k)||'null')}catch(e){return null}},
+ set(k,v){localStorage.setItem(LS+k,JSON.stringify(v))}
+};
+
+let ROLE='owner';
+let VIEW={name:'dashboard'};
+let REPORT_MODAL=null;
+
+function esc(s){return (s||'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
+function el(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild;}
+function getReports(pid){return store.get('reports:'+pid)||[]}
+function saveReports(pid,reports){store.set('reports:'+pid,reports)}
+function maxDay(pid){const r=getReports(pid);return r.length?Math.max(...r.map(x=>x.day)):0}
+function pct(pid){return Math.round((maxDay(pid)/TOTAL_DAYS)*100)}
+function todayFmt(){return new Date().toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'})}
+function clientToken(pid){let t=store.get('token:'+pid); if(!t){t=Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,8);store.set('token:'+pid,t)} return t}
+
+function render(){
+ const root=document.getElementById('app'); root.innerHTML=''; root.appendChild(buildTopbar());
+ const main=document.createElement('main'); root.appendChild(main);
+ if(VIEW.name==='dashboard') main.appendChild(viewDashboard());
+ if(VIEW.name==='project') main.appendChild(viewProject(VIEW.pid));
+ if(VIEW.name==='client') main.appendChild(viewClient(VIEW.pid));
+}
+function buildTopbar(){
+ const bar=document.createElement('div');bar.className='topbar';
+ const isClient=ROLE==='client';
+ bar.innerHTML=`<div class="brand"><div class="logo-mark"><span>LP</span></div><div class="brand-text"><strong>Ingeniería &amp; Desarrollo Industrial LP</strong><span>${isClient?'Seguimiento de Obra · Talara':'Panel del Dueño · Talara'}</span></div></div><div class="role-chip">${isClient?'🏥 Cliente':'👷 Dueño'}</div>`;
+ return bar;
+}
+function viewDashboard(){
+ const w=document.createElement('div');
+ w.appendChild(el(`<div class="hero-select" style="padding:10px 4px 2px"><h1>Panel de proyectos</h1><p>Selecciona un proyecto para revisar su avance o registrar el reporte del día.</p></div>`));
+ w.appendChild(el(`<div class="eyebrow">Proyectos activos</div>`));
+ Object.values(PROJECTS).forEach(p=>{
+   const d=maxDay(p.id), pc=pct(p.id); const card=el(`<div class="proj-card"><div class="proj-top"><div><h3>${esc(p.name)}</h3><p>${esc(p.client)}</p></div><div class="status-pill ${d?'active':'pending'}">${d?`Día ${d} de 20`:'Sin reportes'}</div></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div><div class="progress-pct">${pc}%</div></div><div class="proj-meta"><span>${getReports(p.id).length} reporte(s)</span><span>20 días hábiles</span></div></div>`);
+   card.onclick=()=>{VIEW={name:'project',pid:p.id};render()};w.appendChild(card);
+ }); return w;
+}
+function viewProject(pid){
+ const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>b.day-a.day), d=maxDay(pid), pc=pct(pid);
+ const w=document.createElement('div'); const back=el(`<div class="backnav">← Volver a proyectos</div>`);back.onclick=()=>{VIEW={name:'dashboard'};render()};w.appendChild(back);
+ const actions=el(`<div class="top-actions"><button class="link-btn" id="pdf-all">⬇ PDF acumulado</button><button class="link-btn" id="copy-link">🔗 Copiar enlace cliente</button></div>`);w.appendChild(actions);
+ actions.querySelector('#pdf-all').onclick=()=>downloadProjectPDF(pid);
+ actions.querySelector('#copy-link').onclick=()=>copyClientLink(pid);
+ w.appendChild(el(`<div class="detail-head"><h2>${esc(p.name)}</h2><p class="sub">${esc(p.client)}</p><div class="day-counter"><span class="big">${pc}%</span><span class="of">avance · Día ${d||0} de ${TOTAL_DAYS}</span></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div></div></div>`));
+ w.appendChild(el(`<div class="scope-box"><h3>Alcance del proyecto</h3><ul>${(p.scope||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>`));
+ w.appendChild(el(`<div class="eyebrow">Reportes diarios</div>`));
+ if(!reps.length) w.appendChild(el(`<div class="empty-state"><div class="icon">📋</div><p>Todavía no hay reportes para este proyecto.</p></div>`));
+ reps.forEach(r=>w.appendChild(reportCard(r,{pid})));
+ const fab=el(`<button class="fab">＋ Reportar avance</button>`);fab.onclick=()=>openReport(pid);w.appendChild(fab);return w;
+}
+function reportCard(r,opts={}){
+ const pid=opts.pid||VIEW.pid;
+ const isClient=opts.client===true;
+ const photos=(r.photos||[]).map((ph,i)=>`<img class="${isClient?'clickable':''}" src="${ph}" ${isClient?`data-photo="${i}"`:''}>`).join('');
+ const actions=!isClient?`<div class="report-actions"><button class="mini-btn pdf-one">⬇ PDF de este reporte</button><button class="btn-danger delete-report">Eliminar reporte</button></div>`:'';
+ const card=el(`<div class="tl-item"><div class="tl-head"><div class="tl-day"><div class="tl-num">D<b>${r.day}</b></div><div><div class="tl-date">Día ${r.day} de ${TOTAL_DAYS}</div><div class="tl-time">${esc(r.dateLabel)}</div></div></div><div class="tl-badge ok">${Math.round(r.day/TOTAL_DAYS*100)}%</div></div><div class="tl-body open"><div class="tl-block"><h4>Reporte</h4><p>${esc(r.text)||'—'}</p></div><div class="photo-row">${photos}</div>${actions}</div></div>`);
+ if(!isClient){
+   card.querySelector('.pdf-one').onclick=(e)=>{e.stopPropagation();downloadSingleReportPDF(pid,r)};
+   card.querySelector('.delete-report').onclick=(e)=>{e.stopPropagation();deleteReport(pid,r.day)};
+ } else {
+   card.querySelectorAll('.photo-row img').forEach(img=>img.onclick=()=>openLightbox(img.src));
+ }
+ return card;
+}
+function openReport(pid){
+ const existing=getReports(pid); const suggested=Math.min(TOTAL_DAYS,(existing.length?Math.max(...existing.map(r=>r.day))+1:1));
+ REPORT_MODAL={pid,day:suggested,text:'',photos:[]};renderReportModal();
+}
+function renderReportModal(){
+ document.getElementById('report-overlay')?.remove(); const p=PROJECTS[REPORT_MODAL.pid];
+ const overlay=el(`<div class="overlay" id="report-overlay"></div>`);
+ const opts=Array.from({length:TOTAL_DAYS},(_,i)=>i+1).map(d=>`<option value="${d}" ${d===REPORT_MODAL.day?'selected':''}>Día ${d}</option>`).join('');
+ const modal=el(`<div class="modal"><div class="modal-head"><h2>Nuevo reporte</h2><button class="close-x">✕</button></div><p class="modal-sub">${esc(p.name)}</p><div class="field-group"><label class="fl">Día de obra</label><select id="r-day">${opts}</select></div><div class="field-group"><label class="fl">Reporte / descripción</label><textarea id="r-text" placeholder="Escribe qué se realizó, avances, observaciones o pendientes..."></textarea></div><div class="field-group"><label class="fl">Evidencia fotográfica</label><div class="photo-upload" id="r-photos"></div><div class="photo-upload"><label class="add-photo">＋<input type="file" accept="image/*" capture="environment" multiple id="r-input" style="display:none"></label></div><div class="save-msg">En celular podrás tomar una foto o elegir una de tu galería.</div></div></div>`);
+ overlay.appendChild(modal); const footer=el(`<div class="modal-footer"><button class="btn-primary" id="r-save">Guardar reporte</button><div class="save-msg">El avance se calculará según el día elegido.</div></div>`);overlay.appendChild(footer);document.body.appendChild(overlay);
+ modal.querySelector('.close-x').onclick=()=>overlay.remove(); overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};
+ document.getElementById('r-day').onchange=e=>REPORT_MODAL.day=parseInt(e.target.value);
+ document.getElementById('r-text').oninput=e=>REPORT_MODAL.text=e.target.value;
+ document.getElementById('r-input').onchange=async e=>{for(const f of Array.from(e.target.files||[])){REPORT_MODAL.photos.push(await fileToData(f))}renderReportPhotos();e.target.value=''};
+ document.getElementById('r-save').onclick=saveReport; renderReportPhotos();
+}
+function renderReportPhotos(){const c=document.getElementById('r-photos'); if(!c)return;c.innerHTML=REPORT_MODAL.photos.map((ph,i)=>`<div class="photo-thumb"><img src="${ph}"><button class="rm" data-i="${i}">✕</button></div>`).join('');c.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{REPORT_MODAL.photos.splice(+b.dataset.i,1);renderReportPhotos()})}
+function fileToData(file){return new Promise((res,rej)=>{const rd=new FileReader();rd.onload=e=>res(e.target.result);rd.onerror=rej;rd.readAsDataURL(file)})}
+function saveReport(){
+ const pid=REPORT_MODAL.pid, reports=getReports(pid); const idx=reports.findIndex(r=>r.day===REPORT_MODAL.day);
+ const data={day:REPORT_MODAL.day,text:REPORT_MODAL.text.trim(),photos:[...REPORT_MODAL.photos],dateLabel:todayFmt(),updatedAt:new Date().toISOString()};
+ if(idx>=0)reports[idx]=data; else reports.push(data); saveReports(pid,reports);document.getElementById('report-overlay')?.remove();VIEW={name:'project',pid};render();
+}
+function deleteReport(pid,day){
+ const reports=getReports(pid);
+ const target=reports.find(r=>r.day===day);
+ if(!target)return;
+ const ok=confirm(`¿Eliminar el reporte del Día ${day}?\n\nSe quitará del historial y del PDF acumulado. Esta acción no se puede deshacer en esta demo.`);
+ if(!ok)return;
+ const updated=reports.filter(r=>r.day!==day);
+ saveReports(pid,updated);
+ VIEW={name:'project',pid};
+ render();
+}
+function copyClientLink(pid){
+ const token=clientToken(pid); const link=`${location.origin}${location.pathname}?client=${pid}&token=${token}`;
+ if(navigator.clipboard)navigator.clipboard.writeText(link).then(()=>alert('Enlace del cliente copiado. En esta demo funciona en este navegador.'));
+ else prompt('Copia este enlace:',link)
+}
+function viewClient(pid){
+ const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>b.day-a.day),d=maxDay(pid),pc=pct(pid); const w=document.createElement('div');
+ w.appendChild(el(`<div class="eyebrow">Seguimiento para cliente</div>`));
+ w.appendChild(el(`<div class="detail-head"><h2>${esc(p.name)}</h2><p class="sub">${esc(p.client)}</p><div class="day-counter"><span class="big">${pc}%</span><span class="of">avance general · Día ${d||0} de ${TOTAL_DAYS}</span></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div></div><div class="client-note">Toca cualquier fotografía para verla en tamaño grande.</div></div>`));
+ w.appendChild(el(`<div class="eyebrow">Actualizaciones de obra</div>`));
+ if(!reps.length)w.appendChild(el(`<div class="empty-state"><div class="icon">👁</div><p>Aún no hay actualizaciones publicadas.</p></div>`));
+ reps.forEach(r=>w.appendChild(reportCard(r,{pid,client:true}))); return w;
+}
+function openLightbox(src){
+ document.getElementById('photo-lightbox')?.remove();
+ const lb=el(`<div class="lightbox" id="photo-lightbox"><button class="lightbox-close">✕</button><img src="${src}" alt="Evidencia de obra ampliada"></div>`);
+ lb.querySelector('.lightbox-close').onclick=()=>lb.remove();
+ lb.onclick=e=>{if(e.target===lb)lb.remove()};
+ document.body.appendChild(lb);
+}
+function buildPDFElement(pid,reports,title){
+ const p=PROJECTS[pid], d=reports.length?Math.max(...reports.map(r=>r.day)):0, pc=Math.round(d/TOTAL_DAYS*100);
+ const wrap=document.createElement('div');wrap.className='pdf-export';
+ wrap.innerHTML=`<div class="pdf-header"><h1>Ingeniería &amp; Desarrollo Industrial LP</h1><div class="pdf-meta">Reporte de avance de obra · Talara</div></div><h2>${esc(p.name)}</h2><div class="pdf-meta">${esc(p.client)}</div><div class="pdf-meta"><b>${title}</b></div><div class="pdf-meta">Avance registrado: ${pc}% · Día ${d} de ${TOTAL_DAYS}</div><div class="pdf-progress"><div style="width:${pc}%"></div></div>`;
+ reports.slice().sort((a,b)=>a.day-b.day).forEach(r=>{
+   const sec=document.createElement('section');sec.className='pdf-report';
+   sec.innerHTML=`<h3>Día ${r.day} de ${TOTAL_DAYS} · ${Math.round(r.day/TOTAL_DAYS*100)}%</h3><div class="pdf-meta">${esc(r.dateLabel)}</div><p>${esc(r.text)||'—'}</p><div class="pdf-photos">${(r.photos||[]).map(ph=>`<img src="${ph}">`).join('')}</div>`;
+   wrap.appendChild(sec);
+ });
+ return wrap;
+}
+async function exportPDF(element,filename){
+ const options={margin:[8,8,8,8],filename,image:{type:'jpeg',quality:.92},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}};
+ if(window.html2pdf){
+   await html2pdf().set(options).from(element).save();
+ }else{
+   const win=window.open('','_blank');win.document.write('<html><head><title>'+filename+'</title></head><body>'+element.outerHTML+'</body></html>');win.document.close();win.print();
+ }
+}
+function safeName(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()}
+function downloadSingleReportPDF(pid,r){
+ const element=buildPDFElement(pid,[r],`Reporte individual · Día ${r.day}`);
+ exportPDF(element,`LP-${safeName(PROJECTS[pid].name)}-dia-${r.day}.pdf`);
+}
+function downloadProjectPDF(pid){
+ const reps=getReports(pid);
+ if(!reps.length){alert('Todavía no hay reportes para descargar.');return;}
+ const d=Math.max(...reps.map(r=>r.day));
+ const element=buildPDFElement(pid,reps,`Reporte acumulado · Días reportados hasta el día ${d}`);
+ exportPDF(element,`LP-${safeName(PROJECTS[pid].name)}-acumulado-dia-${d}.pdf`);
+}
+(function boot(){
+ const q=new URLSearchParams(location.search); const pid=q.get('client'); const token=q.get('token');
+ if(pid && PROJECTS[pid] && token===clientToken(pid)){ROLE='client';VIEW={name:'client',pid};}
+ render();
+})();
+</script>
+
+</body>
+</html>

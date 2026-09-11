@@ -17,3 +17,7 @@ Render publica automáticamente el contenido de la rama `main`.
 
 ## Versión 3
 - Los reportes se muestran en orden cronológico ascendente: Día 1, Día 2, …, Día 20, tanto en el panel del dueño como en la vista del cliente.
+
+## v4
+- Se separó la carga de evidencia en dos opciones: **Tomar foto** y **Subir de galería**.
+- La galería permite seleccionar múltiples imágenes.

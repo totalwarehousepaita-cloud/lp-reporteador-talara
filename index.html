@@ -176,6 +176,9 @@
   .photo-thumb img{width:100%;height:100%;object-fit:cover;border:1px solid var(--line);}
   .photo-thumb .rm{position:absolute;top:-6px;right:-6px;width:19px;height:19px;background:var(--ink);color:#fff;border:none;font-size:10px;cursor:pointer;}
   .add-photo{width:62px;height:62px;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--steel-2);font-size:19px;cursor:pointer;background:var(--paper);}
+  .photo-source-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+  .photo-source-btn{min-height:46px;padding:0 16px;border:1px solid var(--line);background:var(--paper);color:var(--ink);display:flex;align-items:center;gap:8px;font:700 12px Archivo, sans-serif;cursor:pointer;}
+  .photo-source-btn:hover{border-color:var(--orange);color:var(--orange);}
 
   .toggle-row{display:flex;gap:10px;}
   .toggle-btn{flex:1;padding:11px;border:1px solid var(--line);background:var(--paper);text-align:center;font-size:13px;font-weight:600;cursor:pointer;color:var(--steel-2);}
@@ -390,12 +393,14 @@ function renderReportModal(){
  document.getElementById('report-overlay')?.remove(); const p=PROJECTS[REPORT_MODAL.pid];
  const overlay=el(`<div class="overlay" id="report-overlay"></div>`);
  const opts=Array.from({length:TOTAL_DAYS},(_,i)=>i+1).map(d=>`<option value="${d}" ${d===REPORT_MODAL.day?'selected':''}>Día ${d}</option>`).join('');
- const modal=el(`<div class="modal"><div class="modal-head"><h2>Nuevo reporte</h2><button class="close-x">✕</button></div><p class="modal-sub">${esc(p.name)}</p><div class="field-group"><label class="fl">Día de obra</label><select id="r-day">${opts}</select></div><div class="field-group"><label class="fl">Reporte / descripción</label><textarea id="r-text" placeholder="Escribe qué se realizó, avances, observaciones o pendientes..."></textarea></div><div class="field-group"><label class="fl">Evidencia fotográfica</label><div class="photo-upload" id="r-photos"></div><div class="photo-upload"><label class="add-photo">＋<input type="file" accept="image/*" capture="environment" multiple id="r-input" style="display:none"></label></div><div class="save-msg">En celular podrás tomar una foto o elegir una de tu galería.</div></div></div>`);
+ const modal=el(`<div class="modal"><div class="modal-head"><h2>Nuevo reporte</h2><button class="close-x">✕</button></div><p class="modal-sub">${esc(p.name)}</p><div class="field-group"><label class="fl">Día de obra</label><select id="r-day">${opts}</select></div><div class="field-group"><label class="fl">Reporte / descripción</label><textarea id="r-text" placeholder="Escribe qué se realizó, avances, observaciones o pendientes..."></textarea></div><div class="field-group"><label class="fl">Evidencia fotográfica</label><div class="photo-upload" id="r-photos"></div><div class="photo-source-actions"><label class="photo-source-btn">📷 Tomar foto<input type="file" accept="image/*" capture="environment" id="r-camera" style="display:none"></label><label class="photo-source-btn">🖼️ Subir de galería<input type="file" accept="image/*" multiple id="r-gallery" style="display:none"></label></div><div class="save-msg">Puedes tomar una foto con la cámara o seleccionar una o varias imágenes de tu galería.</div></div></div>`);
  overlay.appendChild(modal); const footer=el(`<div class="modal-footer"><button class="btn-primary" id="r-save">Guardar reporte</button><div class="save-msg">El avance se calculará según el día elegido.</div></div>`);overlay.appendChild(footer);document.body.appendChild(overlay);
  modal.querySelector('.close-x').onclick=()=>overlay.remove(); overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};
  document.getElementById('r-day').onchange=e=>REPORT_MODAL.day=parseInt(e.target.value);
  document.getElementById('r-text').oninput=e=>REPORT_MODAL.text=e.target.value;
- document.getElementById('r-input').onchange=async e=>{for(const f of Array.from(e.target.files||[])){REPORT_MODAL.photos.push(await fileToData(f))}renderReportPhotos();e.target.value=''};
+ const addSelectedPhotos=async e=>{for(const f of Array.from(e.target.files||[])){REPORT_MODAL.photos.push(await fileToData(f))}renderReportPhotos();e.target.value=''};
+ document.getElementById('r-camera').onchange=addSelectedPhotos;
+ document.getElementById('r-gallery').onchange=addSelectedPhotos;
  document.getElementById('r-save').onclick=saveReport; renderReportPhotos();
 }
 function renderReportPhotos(){const c=document.getElementById('r-photos'); if(!c)return;c.innerHTML=REPORT_MODAL.photos.map((ph,i)=>`<div class="photo-thumb"><img src="${ph}"><button class="rm" data-i="${i}">✕</button></div>`).join('');c.querySelectorAll('.rm').forEach(b=>b.onclick=()=>{REPORT_MODAL.photos.splice(+b.dataset.i,1);renderReportPhotos()})}

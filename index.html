@@ -356,7 +356,7 @@ function viewDashboard(){
  }); return w;
 }
 function viewProject(pid){
- const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>b.day-a.day), d=maxDay(pid), pc=pct(pid);
+ const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>a.day-b.day), d=maxDay(pid), pc=pct(pid);
  const w=document.createElement('div'); const back=el(`<div class="backnav">← Volver a proyectos</div>`);back.onclick=()=>{VIEW={name:'dashboard'};render()};w.appendChild(back);
  const actions=el(`<div class="top-actions"><button class="link-btn" id="pdf-all">⬇ PDF acumulado</button><button class="link-btn" id="copy-link">🔗 Copiar enlace cliente</button></div>`);w.appendChild(actions);
  actions.querySelector('#pdf-all').onclick=()=>downloadProjectPDF(pid);
@@ -427,7 +427,7 @@ async function copyClientLink(pid){
  }catch(e){console.error(e);alert('No se pudo generar el enlace del cliente.');}
 }
 function viewClient(pid){
- const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>b.day-a.day),d=maxDay(pid),pc=pct(pid); const w=document.createElement('div');
+ const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>a.day-b.day),d=maxDay(pid),pc=pct(pid); const w=document.createElement('div');
  w.appendChild(el(`<div class="eyebrow">Seguimiento para cliente</div>`));
  w.appendChild(el(`<div class="detail-head"><h2>${esc(p.name)}</h2><p class="sub">${esc(p.client)}</p><div class="day-counter"><span class="big">${pc}%</span><span class="of">avance general · Día ${d||0} de ${TOTAL_DAYS}</span></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div></div><div class="client-note">Toca cualquier fotografía para verla en tamaño grande.</div></div>`));
  w.appendChild(el(`<div class="eyebrow">Actualizaciones de obra</div>`));

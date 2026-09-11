@@ -13,3 +13,7 @@ Aplicación web estática de Ingeniería & Desarrollo Industrial LP para seguimi
 - PDF individual corregido para evitar recortes y esperar la carga de imágenes.
 
 Render publica automáticamente el contenido de la rama `main`.
+
+
+## Versión 3
+- Los reportes se muestran en orden cronológico ascendente: Día 1, Día 2, …, Día 20, tanto en el panel del dueño como en la vista del cliente.

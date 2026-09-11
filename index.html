@@ -453,11 +453,48 @@ function buildPDFElement(pid,reports,title){
  return wrap;
 }
 async function exportPDF(element,filename){
- const options={margin:[8,8,8,8],filename,image:{type:'jpeg',quality:.92},html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy']}};
- if(window.html2pdf){
-   await html2pdf().set(options).from(element).save();
- }else{
-   const win=window.open('','_blank');win.document.write('<html><head><title>'+filename+'</title></head><body>'+element.outerHTML+'</body></html>');win.document.close();win.print();
+ // html2canvas puede recortar elementos que no están montados en el DOM.
+ // Para evitarlo, renderizamos el PDF en un contenedor temporal fuera de pantalla.
+ const host=document.createElement('div');
+ host.style.position='fixed';
+ host.style.left='-10000px';
+ host.style.top='0';
+ host.style.width='794px';
+ host.style.background='#fff';
+ host.style.zIndex='-1';
+ host.appendChild(element);
+ document.body.appendChild(host);
+ element.style.width='794px';
+ element.style.maxWidth='794px';
+ element.style.boxSizing='border-box';
+
+ try{
+   if(document.fonts && document.fonts.ready) await document.fonts.ready;
+   const imgs=[...element.querySelectorAll('img')];
+   await Promise.all(imgs.map(img=>{
+     if(img.complete) return Promise.resolve();
+     return new Promise(resolve=>{img.onload=resolve;img.onerror=resolve;});
+   }));
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+   const options={
+     margin:[8,8,8,8],
+     filename,
+     image:{type:'jpeg',quality:.92},
+     html2canvas:{scale:2,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',scrollX:0,scrollY:0},
+     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+     pagebreak:{mode:['css','legacy']}
+   };
+   if(window.html2pdf){
+     await html2pdf().set(options).from(element).save();
+   }else{
+     const win=window.open('','_blank');
+     win.document.write('<html><head><title>'+filename+'</title></head><body>'+element.outerHTML+'</body></html>');
+     win.document.close();
+     win.print();
+   }
+ }finally{
+   host.remove();
  }
 }
 function safeName(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()}

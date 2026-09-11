@@ -21,3 +21,9 @@ Render publica automáticamente el contenido de la rama `main`.
 ## v4
 - Se separó la carga de evidencia en dos opciones: **Tomar foto** y **Subir de galería**.
 - La galería permite seleccionar múltiples imágenes.
+
+
+## v5
+- Dos botones visibles en el reporteador: Tomar foto y Subir foto.
+- Tomar foto abre la cámara.
+- Subir foto permite seleccionar una o varias imágenes desde galería/Fotos o Archivos.

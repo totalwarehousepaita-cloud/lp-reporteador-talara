@@ -218,8 +218,9 @@
   .pdf-progress{height:10px;background:#eee;margin:10px 0 18px;}
   .pdf-progress > div{height:100%;background:var(--orange);}
   .pdf-report{page-break-inside:avoid;border-top:1px solid #ddd;padding-top:18px;margin-top:18px;}
-  .pdf-photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-  .pdf-photos img{width:180px;height:130px;object-fit:cover;border:1px solid #ddd;}
+  .pdf-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px;}
+  .pdf-photos img{width:100%;height:240px;object-fit:cover;border:1px solid #ddd;display:block;}
+  .pdf-photos img,.pdf-report{break-inside:avoid;page-break-inside:avoid;}
 
   @media print{
     .topbar,.fab,.top-actions,.backnav,.link-btn,.scope-toggle,.test-banner{display:none !important;}
@@ -343,7 +344,8 @@ function render(){
  if(!APP_READY){main.appendChild(el(`<div class="empty-state"><div class="icon">⏳</div><p>Conectando con el sistema...</p></div>`));return;}
  if(VIEW.name==='dashboard') main.appendChild(viewDashboard());
  if(VIEW.name==='project') main.appendChild(viewProject(VIEW.pid));
- if(VIEW.name==='client') main.appendChild(viewClient(VIEW.pid));
+ if(VIEW.name==='clientDashboard') main.appendChild(viewClientDashboard());
+ if(VIEW.name==='clientProject') main.appendChild(viewClientProject(VIEW.pid));
 }
 function buildTopbar(){
  const bar=document.createElement('div');bar.className='topbar';
@@ -354,6 +356,9 @@ function buildTopbar(){
 function viewDashboard(){
  const w=document.createElement('div');
  w.appendChild(el(`<div class="hero-select" style="padding:10px 4px 2px"><h1>Panel de proyectos</h1><p>Selecciona un proyecto para revisar su avance o registrar el reporte del día.</p></div>`));
+ const clientBar=el(`<div class="top-actions"><button class="link-btn" id="copy-client-all">🔗 Copiar enlace cliente · Ambos proyectos</button></div>`);
+ clientBar.querySelector('#copy-client-all').onclick=()=>copyClientLink();
+ w.appendChild(clientBar);
  w.appendChild(el(`<div class="eyebrow">Proyectos activos</div>`));
  Object.values(PROJECTS).forEach(p=>{
    const d=maxDay(p.id), pc=pct(p.id); const card=el(`<div class="proj-card"><div class="proj-top"><div><h3>${esc(p.name)}</h3><p>${esc(p.client)}</p></div><div class="status-pill ${d?'active':'pending'}">${d?`Día ${d} de 20`:'Sin reportes'}</div></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div><div class="progress-pct">${pc}%</div></div><div class="proj-meta"><span>${getReports(p.id).length} reporte(s)</span><span>20 días hábiles</span></div></div>`);
@@ -363,9 +368,9 @@ function viewDashboard(){
 function viewProject(pid){
  const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>a.day-b.day), d=maxDay(pid), pc=pct(pid);
  const w=document.createElement('div'); const back=el(`<div class="backnav">← Volver a proyectos</div>`);back.onclick=()=>{VIEW={name:'dashboard'};render()};w.appendChild(back);
- const actions=el(`<div class="top-actions"><button class="link-btn" id="pdf-all">⬇ PDF acumulado</button><button class="link-btn" id="copy-link">🔗 Copiar enlace cliente</button></div>`);w.appendChild(actions);
+ const actions=el(`<div class="top-actions"><button class="link-btn" id="pdf-all">⬇ PDF acumulado</button><button class="link-btn" id="copy-link">🔗 Copiar enlace cliente · Ambos proyectos</button></div>`);w.appendChild(actions);
  actions.querySelector('#pdf-all').onclick=()=>downloadProjectPDF(pid);
- actions.querySelector('#copy-link').onclick=()=>copyClientLink(pid);
+ actions.querySelector('#copy-link').onclick=()=>copyClientLink();
  w.appendChild(el(`<div class="detail-head"><h2>${esc(p.name)}</h2><p class="sub">${esc(p.client)}</p><div class="day-counter"><span class="big">${pc}%</span><span class="of">avance · Día ${d||0} de ${TOTAL_DAYS}</span></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div></div></div>`));
  w.appendChild(el(`<div class="scope-box"><h3>Alcance del proyecto</h3><ul>${(p.scope||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>`));
  w.appendChild(el(`<div class="eyebrow">Reportes diarios</div>`));
@@ -377,10 +382,10 @@ function reportCard(r,opts={}){
  const pid=opts.pid||VIEW.pid;
  const isClient=opts.client===true;
  const photos=(r.photos||[]).map((ph,i)=>`<img class="${isClient?'clickable':''}" src="${ph}" ${isClient?`data-photo="${i}"`:''}>`).join('');
- const actions=!isClient?`<div class="report-actions"><button class="mini-btn pdf-one">⬇ PDF de este reporte</button><button class="btn-danger delete-report">Eliminar reporte</button></div>`:'';
+ const actions=isClient?`<div class="report-actions"><button class="mini-btn pdf-one">⬇ PDF de este reporte</button></div>`:`<div class="report-actions"><button class="mini-btn pdf-one">⬇ PDF de este reporte</button><button class="btn-danger delete-report">Eliminar reporte</button></div>`;
  const card=el(`<div class="tl-item"><div class="tl-head"><div class="tl-day"><div class="tl-num">D<b>${r.day}</b></div><div><div class="tl-date">Día ${r.day} de ${TOTAL_DAYS}</div><div class="tl-time">${esc(r.dateLabel)}</div></div></div><div class="tl-badge ok">${Math.round(r.day/TOTAL_DAYS*100)}%</div></div><div class="tl-body open"><div class="tl-block"><h4>Reporte</h4><p>${esc(r.text)||'—'}</p></div><div class="photo-row">${photos}</div>${actions}</div></div>`);
+ card.querySelector('.pdf-one')?.addEventListener('click',(e)=>{e.stopPropagation();downloadSingleReportPDF(pid,r)});
  if(!isClient){
-   card.querySelector('.pdf-one').onclick=(e)=>{e.stopPropagation();downloadSingleReportPDF(pid,r)};
    card.querySelector('.delete-report').onclick=(e)=>{e.stopPropagation();deleteReport(pid,r.day)};
  } else {
    card.querySelectorAll('.photo-row img').forEach(img=>img.onclick=()=>openLightbox(img.src));
@@ -426,19 +431,35 @@ async function deleteReport(pid,day){
  try{await deleteReportRemote(pid,day);VIEW={name:'project',pid};render();}
  catch(e){console.error(e);alert('No se pudo eliminar el reporte.');}
 }
-async function copyClientLink(pid){
+async function copyClientLink(){
  try{
-   const token=PROJECT_META[pid]?.client_token;
+   // Ambos proyectos pertenecen al mismo cliente, por eso usamos un único acceso.
+   const token=PROJECT_META.p1?.client_token || PROJECT_META.p2?.client_token;
    if(!token) throw new Error('Token no disponible');
-   const link=`${location.origin}${location.pathname}?client=${pid}&token=${token}`;
-   if(navigator.clipboard){await navigator.clipboard.writeText(link);alert('Enlace del cliente copiado. Ya puedes enviárselo al cliente.');}
+   const link=`${location.origin}${location.pathname}?client=all&token=${token}`;
+   if(navigator.clipboard){await navigator.clipboard.writeText(link);alert('Enlace del cliente copiado. Con este único enlace podrá ver ambos proyectos y descargar sus PDF.');}
    else prompt('Copia este enlace:',link);
  }catch(e){console.error(e);alert('No se pudo generar el enlace del cliente.');}
 }
-function viewClient(pid){
+function viewClientDashboard(){
+ const w=document.createElement('div');
+ w.appendChild(el(`<div class="hero-select" style="padding:10px 4px 2px"><h1>Seguimiento de proyectos</h1><p>Avance de los proyectos de Clínica Sanna en Talara.</p></div>`));
+ w.appendChild(el(`<div class="eyebrow">Proyectos</div>`));
+ Object.values(PROJECTS).forEach(p=>{
+   const d=maxDay(p.id),pc=pct(p.id),reps=getReports(p.id);
+   const card=el(`<div class="proj-card"><div class="proj-top"><div><h3>${esc(p.name)}</h3><p>${esc(p.client)}</p></div><div class="status-pill ${d?'active':'pending'}">${d?`Día ${d} de 20`:'Sin reportes'}</div></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div><div class="progress-pct">${pc}%</div></div><div class="proj-meta"><span>${reps.length} reporte(s)</span><span>20 días hábiles</span></div></div>`);
+   card.onclick=()=>{VIEW={name:'clientProject',pid:p.id};render();window.scrollTo(0,0)};
+   w.appendChild(card);
+ });
+ return w;
+}
+function viewClientProject(pid){
  const p=PROJECTS[pid], reps=getReports(pid).sort((a,b)=>a.day-b.day),d=maxDay(pid),pc=pct(pid); const w=document.createElement('div');
+ const back=el(`<div class="backnav">← Volver a ambos proyectos</div>`);back.onclick=()=>{VIEW={name:'clientDashboard'};render();window.scrollTo(0,0)};w.appendChild(back);
+ const actions=el(`<div class="top-actions"><button class="link-btn" id="client-pdf-all">⬇ PDF acumulado del proyecto</button></div>`);
+ actions.querySelector('#client-pdf-all').onclick=()=>downloadProjectPDF(pid);w.appendChild(actions);
  w.appendChild(el(`<div class="eyebrow">Seguimiento para cliente</div>`));
- w.appendChild(el(`<div class="detail-head"><h2>${esc(p.name)}</h2><p class="sub">${esc(p.client)}</p><div class="day-counter"><span class="big">${pc}%</span><span class="of">avance general · Día ${d||0} de ${TOTAL_DAYS}</span></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div></div><div class="client-note">Toca cualquier fotografía para verla en tamaño grande.</div></div>`));
+ w.appendChild(el(`<div class="detail-head"><h2>${esc(p.name)}</h2><p class="sub">${esc(p.client)}</p><div class="day-counter"><span class="big">${pc}%</span><span class="of">avance general · Día ${d||0} de ${TOTAL_DAYS}</span></div><div class="progress-row"><div class="progress-track"><div class="progress-fill" style="width:${pc}%"></div></div></div><div class="client-note">Puedes ampliar las fotografías y descargar el PDF de cada reporte o el PDF acumulado.</div></div>`));
  w.appendChild(el(`<div class="eyebrow">Actualizaciones de obra</div>`));
  if(!reps.length)w.appendChild(el(`<div class="empty-state"><div class="icon">👁</div><p>Aún no hay actualizaciones publicadas.</p></div>`));
  reps.forEach(r=>w.appendChild(reportCard(r,{pid,client:true}))); return w;
@@ -522,8 +543,11 @@ function downloadProjectPDF(pid){
  try{
    await loadProjectsMeta();
    await refreshAll();
-   const q=new URLSearchParams(location.search); const pid=q.get('client'); const token=q.get('token');
-   if(pid && PROJECTS[pid] && PROJECT_META[pid] && token===PROJECT_META[pid].client_token){ROLE='client';VIEW={name:'client',pid};}
+   const q=new URLSearchParams(location.search); const client=q.get('client'); const token=q.get('token');
+   const sharedToken=PROJECT_META.p1?.client_token || PROJECT_META.p2?.client_token;
+   if(client==='all' && sharedToken && token===sharedToken){ROLE='client';VIEW={name:'clientDashboard'};}
+   // Compatibilidad temporal con enlaces antiguos de un solo proyecto.
+   else if(client && PROJECTS[client] && PROJECT_META[client] && token===PROJECT_META[client].client_token){ROLE='client';VIEW={name:'clientProject',pid:client};}
    APP_READY=true;
    render();
  }catch(e){

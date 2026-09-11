@@ -27,3 +27,9 @@ Render publica automáticamente el contenido de la rama `main`.
 - Dos botones visibles en el reporteador: Tomar foto y Subir foto.
 - Tomar foto abre la cámara.
 - Subir foto permite seleccionar una o varias imágenes desde galería/Fotos o Archivos.
+
+
+## v6
+- Un único enlace de cliente permite ver ambos proyectos.
+- El cliente puede descargar el PDF acumulado de cada proyecto y el PDF de cada reporte.
+- Las fotografías en los PDF se muestran más grandes, uniformes y en una cuadrícula de dos columnas.

@@ -159,7 +159,7 @@
   .picker-col{flex:1;}
   .field-group{margin-bottom:19px;}
   .field-group label.fl{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--steel-2);margin-bottom:8px;}
-  textarea,input[type=text],input[type=time],select{
+  textarea,input[type=text],input[type=time],input[type=date],select{
     width:100%;border:1px solid var(--line);padding:11px 12px;font-size:13.5px;font-family:inherit;background:var(--paper);color:var(--ink);
   }
   textarea{min-height:76px;resize:vertical;}
@@ -316,9 +316,9 @@ async function loadReports(pid){
     let activities=Array.isArray(r.activities)?r.activities:[];
     // Compatibilidad: si un reporte antiguo todavía no fue migrado, se presenta como Actividad 1.
     if(!activities.length && ((r.description||'').trim() || (r.photos||[]).length)){
-      activities=[{id:`legacy-${r.id}`,text:r.description||'',photos:r.photos||[]}];
+      activities=[{id:`legacy-${r.id}`,text:r.description||'',photos:r.photos||[],activity_date:null}];
     }
-    activities=activities.map((a,i)=>({id:a.id||crypto.randomUUID(),text:a.text||a.description||'',photos:Array.isArray(a.photos)?a.photos:[],created_at:a.created_at||null}));
+    activities=activities.map((a,i)=>({id:a.id||crypto.randomUUID(),text:a.text||a.description||'',photos:Array.isArray(a.photos)?a.photos:[],activity_date:a.activity_date||a.date||null,created_at:a.created_at||null}));
     return {id:r.id,day:r.day,text:r.description||'',photos:r.photos||[],activities,dateLabel:fmtDateLabel(r.report_date),updatedAt:r.updated_at,reportDate:r.report_date};
   });
   return REPORTS_CACHE[pid];
@@ -340,7 +340,7 @@ async function saveReportRemote(pid,report){
   for(const raw of report.activities||[]){
     const photos=[];
     for(const ph of raw.photos||[]) photos.push(await uploadPhoto(pid,report.day,ph));
-    activities.push({id:raw.id||crypto.randomUUID(),text:(raw.text||'').trim(),photos,created_at:raw.created_at||new Date().toISOString()});
+    activities.push({id:raw.id||crypto.randomUUID(),text:(raw.text||'').trim(),photos,activity_date:raw.activity_date||null,created_at:raw.created_at||new Date().toISOString()});
   }
   const clean=activities.filter(a=>a.text || a.photos.length);
   if(!clean.length) throw new Error('Agrega al menos una actividad con descripción o fotografías.');
@@ -427,7 +427,7 @@ function reportCard(r,opts={}){
  const actHtml=acts.map((a,idx)=>{
    const photos=(a.photos||[]).map(ph=>`<img class="${isClient?'clickable':''}" src="${ph}">`).join('');
    const ownerActions=isClient?'':`<div class="activity-actions"><button class="activity-action edit-activity" data-id="${a.id}">Editar actividad</button><button class="activity-action danger delete-activity" data-id="${a.id}">Eliminar actividad</button></div>`;
-   return `<div class="activity-card" data-activity="${a.id}"><div class="activity-head"><div class="activity-title">Actividad ${idx+1}</div>${ownerActions}</div><p>${esc(a.text)||'—'}</p><div class="photo-row">${photos}</div></div>`;
+   return `<div class="activity-card" data-activity="${a.id}"><div class="activity-head"><div class="activity-title">Actividad ${idx+1}</div>${ownerActions}</div>${a.activity_date?`<div class="day-summary" style="margin:0 0 7px">Fecha: ${esc(fmtDateLabel(a.activity_date))}</div>`:''}<p>${esc(a.text)||'—'}</p><div class="photo-row">${photos}</div></div>`;
  }).join('');
  const actions=isClient?`<div class="report-actions"><button class="mini-btn pdf-one">⬇ PDF de este día</button></div>`:`<div class="report-actions"><button class="mini-btn add-activity-day">＋ Agregar actividad</button><button class="mini-btn pdf-one">⬇ PDF de este día</button><button class="btn-danger delete-report">Eliminar día completo</button></div>`;
  const totalPhotos=allActivityPhotos(acts).length;
@@ -443,8 +443,8 @@ function reportCard(r,opts={}){
  }
  return card;
 }
-function cloneActivities(activities){return (activities||[]).map(a=>({id:a.id||crypto.randomUUID(),text:a.text||'',photos:[...(a.photos||[])],created_at:a.created_at||null}))}
-function blankActivity(){return {id:crypto.randomUUID(),text:'',photos:[],created_at:null}}
+function cloneActivities(activities){return (activities||[]).map(a=>({id:a.id||crypto.randomUUID(),text:a.text||'',photos:[...(a.photos||[])],activity_date:a.activity_date||null,created_at:a.created_at||null}))}
+function blankActivity(){return {id:crypto.randomUUID(),text:'',photos:[],activity_date:new Date().toISOString().slice(0,10),created_at:null}}
 function setModalDay(day,focusId=null){
   REPORT_MODAL.day=day;
   const existing=getReports(REPORT_MODAL.pid).find(r=>r.day===day);
@@ -471,8 +471,9 @@ function renderReportModal(){
 }
 function renderActivityEditors(){
  const c=document.getElementById('activity-editors'); if(!c)return;
- c.innerHTML=REPORT_MODAL.activities.map((a,i)=>`<div class="activity-editor" data-aid="${a.id}"><div class="activity-head"><div class="activity-title">Actividad ${i+1}</div>${REPORT_MODAL.activities.length>1?`<button type="button" class="activity-action danger remove-editor" data-id="${a.id}">Quitar</button>`:''}</div><textarea class="activity-text" data-id="${a.id}" placeholder="Describe qué se realizó en esta actividad, observaciones o pendientes...">${esc(a.text)}</textarea><div class="photo-upload activity-photos" data-id="${a.id}">${(a.photos||[]).map((ph,j)=>`<div class="photo-thumb"><img src="${ph}"><button type="button" class="rm activity-photo-rm" data-id="${a.id}" data-i="${j}">✕</button></div>`).join('')}</div><div class="photo-source-actions"><button type="button" class="photo-source-btn camera-btn" data-id="${a.id}">📷 Tomar foto</button><button type="button" class="photo-source-btn upload-btn" data-id="${a.id}">⬆ Subir foto</button></div><input class="photo-source-input camera-input" data-id="${a.id}" type="file" accept="image/*" capture="environment"><input class="photo-source-input upload-input" data-id="${a.id}" type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple><div class="save-msg">Las fotos quedarán asociadas únicamente a esta actividad.</div></div>`).join('');
- c.querySelectorAll('.activity-text').forEach(t=>t.oninput=e=>{const a=REPORT_MODAL.activities.find(x=>x.id===e.target.dataset.id);if(a)a.text=e.target.value});
+ c.innerHTML=REPORT_MODAL.activities.map((a,i)=>`<div class="activity-editor" data-aid="${a.id}"><div class="activity-head"><div class="activity-title">Actividad ${i+1}</div>${REPORT_MODAL.activities.length>1?`<button type="button" class="activity-action danger remove-editor" data-id="${a.id}">Quitar</button>`:''}</div><div class="field-group" style="margin-bottom:12px"><label class="fl">Fecha de la actividad</label><input class="activity-date" data-id="${a.id}" type="date" value="${esc(a.activity_date||'')}"></div><textarea class="activity-text" data-id="${a.id}" placeholder="Describe qué se realizó en esta actividad, observaciones o pendientes...">${esc(a.text)}</textarea><div class="photo-upload activity-photos" data-id="${a.id}">${(a.photos||[]).map((ph,j)=>`<div class="photo-thumb"><img src="${ph}"><button type="button" class="rm activity-photo-rm" data-id="${a.id}" data-i="${j}">✕</button></div>`).join('')}</div><div class="photo-source-actions"><button type="button" class="photo-source-btn camera-btn" data-id="${a.id}">📷 Tomar foto</button><button type="button" class="photo-source-btn upload-btn" data-id="${a.id}">⬆ Subir foto</button></div><input class="photo-source-input camera-input" data-id="${a.id}" type="file" accept="image/*" capture="environment"><input class="photo-source-input upload-input" data-id="${a.id}" type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple><div class="save-msg">Las fotos quedarán asociadas únicamente a esta actividad.</div></div>`).join('');
+ c.querySelectorAll('.activity-date').forEach(t=>t.onchange=e=>{const a=REPORT_MODAL.activities.find(x=>x.id===e.target.dataset.id);if(a)a.activity_date=e.target.value||null});
+  c.querySelectorAll('.activity-text').forEach(t=>t.oninput=e=>{const a=REPORT_MODAL.activities.find(x=>x.id===e.target.dataset.id);if(a)a.text=e.target.value});
  c.querySelectorAll('.remove-editor').forEach(b=>b.onclick=()=>{REPORT_MODAL.activities=REPORT_MODAL.activities.filter(a=>a.id!==b.dataset.id);renderActivityEditors()});
  c.querySelectorAll('.activity-photo-rm').forEach(b=>b.onclick=()=>{const a=REPORT_MODAL.activities.find(x=>x.id===b.dataset.id);if(a){a.photos.splice(+b.dataset.i,1);renderActivityEditors()}});
  c.querySelectorAll('.camera-btn').forEach(b=>b.onclick=()=>c.querySelector(`.camera-input[data-id="${b.dataset.id}"]`).click());
@@ -555,7 +556,7 @@ function buildPDFElement(pid,reports,title){
  reports.slice().sort((a,b)=>a.day-b.day).forEach(r=>{
    const sec=document.createElement('section');sec.className='pdf-report';
    const acts=r.activities||[];
-   sec.innerHTML=`<h3>Día ${r.day} de ${TOTAL_DAYS} · ${Math.round(r.day/TOTAL_DAYS*100)}%</h3><div class="pdf-meta">${esc(r.dateLabel)} · ${acts.length} actividad(es)</div>${acts.map((a,i)=>`<div class="pdf-activity"><h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px">Actividad ${i+1}</h4><p>${esc(a.text)||'—'}</p><div class="pdf-photos">${(a.photos||[]).map(ph=>`<img src="${ph}">`).join('')}</div></div>`).join('')}`;
+   sec.innerHTML=`<h3>Día ${r.day} de ${TOTAL_DAYS} · ${Math.round(r.day/TOTAL_DAYS*100)}%</h3><div class="pdf-meta">${esc(r.dateLabel)} · ${acts.length} actividad(es)</div>${acts.map((a,i)=>`<div class="pdf-activity"><h4 style="margin:16px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px">Actividad ${i+1}</h4>${a.activity_date?`<div class="pdf-meta"><b>Fecha de actividad:</b> ${esc(fmtDateLabel(a.activity_date))}</div>`:''}<p>${esc(a.text)||'—'}</p><div class="pdf-photos">${(a.photos||[]).map(ph=>`<img src="${ph}">`).join('')}</div></div>`).join('')}`;
    wrap.appendChild(sec);
  });
  return wrap;
